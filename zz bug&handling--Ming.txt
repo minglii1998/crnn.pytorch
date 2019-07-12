@@ -1,0 +1,116 @@
+1. pytorch 1.0 有自带的CTCLoss，所以不用安装wrapctcloss
+需要把原来的CTCLoss换成 nn.CTCLoss
+
+2. 查看python安装路径：
+进入python
+>>> import sys
+>>> print (sys.path)
+
+3. vs code报错 module 'torch' has no attribute 'form_numpy'之类的问题
+把 torch.FloatTensor 改成 torch._C.FloatTensor 都这样改就好了
+
+4. 查看pytorch版本：
+进入python
+>>> import torch
+>>> print(torch.__version__) 
+
+5.怎么确定自己是否可以GPU加速：
+进入python
+>>> import torch
+>>> print(torch.cuda.is_available())
+False
+
+6. 安装cv2
+pip install opencv-python
+
+7. vscode报错: Module 'cv2' has no 'imshow' member：
+
+其实代码是没有错误的,,可以直接运行的,就是cscode的插件检测不到模块而已, 主要原因是cv2模块下还有cv2模块,简单的让vscode不报错的方法是在添加包的时候添加
+
+ from cv2 import cv2 as cv 
+
+8. 想要读.mat数据，然鹅弄了一中午还没出来，心态炸了，只想骂人
+下载matlab，然后再用scipy试试
+
+9. UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+把open file后面的'r'，改成了'rb'
+或者
+with open(path, encoding="utf8", errors='ignore') as f:
+ignor掉会不会更好呢...（不会）
+
+10. AttributeError: 'dict' object has no attribute 'iteritems'
+use dict.items() instead of dict.iteritems()
+
+11. TypeError: Won't implicitly convert Unicode to bytes; use .encode()
+        for k, v in cache.items():
+            txn.put(k, v)
+改为：
+        for k, v in cache.items():
+            txn.put(str(k).encode(), str(v).encode())
+
+12. lmdb.Error: train_lmdb/data.mdb: Not a directory
+这个是要把路径直接放到train_lmdp而不是更下一层的data
+
+13. ValueError: sampler option is mutually exclusive with shuffle
+后面加 --random_sample
+
+14. AttributeError: 'Namespace' object has no attribute 'trainroot'
+应该是trainRoot
+
+15. RuntimeError: set_sizes_contiguous is not allowed on Tensor created from .data or .detach()
+v.data.resize_(data.size()).copy_(data)改为
+v.resize_(data.size()).copy_(data)
+
+16. 关于encode()和decode()和str()的坑
+这里直接贴代码：
+In [1]: a = "liming"
+
+In [2]: a
+Out[2]: 'liming'
+
+In [3]: b = a.encode()
+
+In [4]: b
+Out[4]: b'liming'
+
+In [5]: c = str(b)
+
+In [6]: c
+Out[6]: "b'liming'"
+
+In [7]: d = b.decode()
+
+In [8]: d
+Out[8]: 'liming'
+
+In [9]: e = c.decode()
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+<ipython-input-9-45c8dd7be2e8> in <module>
+----> 1 e = c.decode()
+
+AttributeError: 'str' object has no attribute 'decode'
+
+应该也能看懂，a是正常的字符串，b是encode之后的二进制形式
+然后c就比较有意思，str(b)直接把b变成了字符串，输出的b不再代表二进制，而就是字母b，同样的'负号也是单纯的单引号而已
+然后再看，可以发现d是正常的对b解码，但是e对c解码就会报错，b c长得几乎一样但是性质完全不同。这个算是一个大坑吧。
+
+14. OSError: cannot identify image file <_io.BytesIO object at 0x7f8c003117d8>
+
+AssertionError: index range error
+
+Corrupted image for 173
+Corrupted image for 211
+Corrupted image for 213
+Corrupted image for 175
+Corrupted image for 215
+
+并且试了两次，for后面的数字不一样，大概是随机出来的数字，所以靠删除应该解决不了
+
+试图在imgbuf = txn.get(img_key)加了decode，报错
+AttributeError: '_io.BytesIO' object has no attribute 'decode'
+
+在buf.write(imgbuf)加了decode，报错
+TypeError: a bytes-like object is required, not 'str'
+
+出不来，解决不了，fuc告辞
