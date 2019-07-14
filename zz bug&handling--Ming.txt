@@ -1,5 +1,6 @@
 1. pytorch 1.0 有自带的CTCLoss，所以不用安装wrapctcloss
 需要把原来的CTCLoss换成 nn.CTCLoss
+（这里最终并没有这样处理，而是直接用了wrapctcloss）
 
 2. 查看python安装路径：
 进入python
@@ -8,6 +9,7 @@
 
 3. vs code报错 module 'torch' has no attribute 'form_numpy'之类的问题
 把 torch.FloatTensor 改成 torch._C.FloatTensor 都这样改就好了
+（但是实际上，vs code虽然报错，但是运行还是可以正常运行的）
 
 4. 查看pytorch版本：
 进入python
@@ -31,12 +33,14 @@ pip install opencv-python
 
 8. 想要读.mat数据，然鹅弄了一中午还没出来，心态炸了，只想骂人
 下载matlab，然后再用scipy试试
+（失败，这个先不管了）
 
 9. UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
 把open file后面的'r'，改成了'rb'
 或者
 with open(path, encoding="utf8", errors='ignore') as f:
 ignor掉会不会更好呢...（不会）
+（最终这里并没有用这样的处理方式，而是直接在该加encode decode的地方加了encode decode）
 
 10. AttributeError: 'dict' object has no attribute 'iteritems'
 use dict.items() instead of dict.iteritems()
