@@ -37,6 +37,27 @@ Additional -Ming
 
 ###### 以下部分都由ming后期添加，旨在帮助自己更好的理解这个代码
 
+
+- [1. 训练](#1-训练)
+- [2. 代码解释](#2-代码解释)
+                - [自己只是初学者，只是在自己所理解的范围内稍加解释。](#自己只是初学者只是在自己所理解的范围内稍加解释)
+    - [2.1 models/crnn.py](#21-modelscrnnpy)
+    - [2.2 train.py](#22-trainpy)
+        - [2.2.1 val()](#221-val)
+        - [2.2.2 trainBatch()](#222-trainbatch)
+        - [2.2.3 for epoch](#223-for-epoch)
+    - [2.3 dataset.py](#23-datasetpy)
+        - [2.3.1 class lmdbDataset(Dataset)](#231-class-lmdbdatasetdataset)
+        - [2.3.2 class resizeNormalize()](#232-class-resizenormalize)
+        - [2.3.3 class alignCollate()](#233-class-aligncollate)
+    - [2.4 utils.py](#24-utilspy)
+        - [2.4.1 class averager()](#241-class-averager)
+        - [2.4.2 encode & decode](#242-encode--decode)
+        - [2.4.3 loadData(v, data)](#243-loaddatav-data)
+- [3 总结](#3-总结)
+
+
+
 ## 1. 训练
 
 训练要用`create_dataset.py`来制作lmdb格式的数据库。但是由于不知道什么的原因，用自己下载的svt数据库然后转成lmdb时遇到了问题，这个问题暂时还未解决，但是有MJ的lmdb数据库，这个问题暂时不考虑。
