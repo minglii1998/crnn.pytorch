@@ -142,6 +142,97 @@ crnn.apply(weights_init)
    1. 定义weight_init函数，并在weight_init中通过判断模块的类型来进行不同的参数初始化定义类型。
    2. model=Net(…) 创建网络结构。 
    3. model.apply(weight_init),将weight_init初始化方式应用到submodels上
+* 关于Variable
+   Variable封装了tensor，并记录对tensor的操作记录用来构建计算图。主要含有3个属性：
+   data：保存Variable中包含的tensor
+   grad：保存data对应的梯度，grad也是Variable而不是tensor，它与data形状一致
+   grad_fn：指向一个Functionn，记录tensor的操作历史，即它是什么操作的输出，用来构建计算图。
+
+#### 2.2.1 val()
+
+这个函数时用来测试结果如何的，由于每次开始前都会有输出，所以还比较好分辨。
+
+```python
+    for p in crnn.parameters():
+        p.requires_grad = False
+
+    net.eval()
+    data_loader = torch.utils.data.DataLoader(
+        dataset, shuffle=True, batch_size=opt.batchSize, num_workers=int(opt.workers))
+    val_iter = iter(data_loader)
+```
+* 这里把requires_grad设置成了False，就不让它继续算梯度了，也就是现在的测试部分并不影响训练
+* model.eval()，让model变成测试模式，对dropout和batch normalization的操作在训练和测试的时候是不一样的
+
+```python
+    max_iter = min(max_iter, len(data_loader))
+    for i in range(max_iter):
+        data = val_iter.next()
+        i += 1
+        cpu_images, cpu_texts = data
+        batch_size = cpu_images.size(0)
+        utils.loadData(image, cpu_images)
+        t, l = converter.encode(cpu_texts)
+        utils.loadData(text, t)
+        utils.loadData(length, l)
+
+        preds = crnn(image)
+        preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
+        cost = criterion(preds, text, preds_size, length) / batch_size
+        loss_avg.add(cost)
+
+        _, preds = preds.max(2)
+        preds = preds.squeeze()
+        preds = preds.transpose(1, 0).contiguous().view(-1)
+        sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
+        for pred, target in zip(sim_preds, cpu_texts):
+            if pred == target.lower():
+                n_correct += 1
+```
+* 一大坨看了让人自闭，先放着吧
+* 
+
+#### 2.2.2 trainBatch()
+
+```python
+def trainBatch(net, criterion, optimizer):
+    data = train_iter.next()
+    cpu_images, cpu_texts = data
+    batch_size = cpu_images.size(0)
+    utils.loadData(image, cpu_images)
+    t, l = converter.encode(cpu_texts)
+    utils.loadData(text, t)
+    utils.loadData(length, l)
+
+    preds = crnn(image)
+    preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
+    cost = criterion(preds, text, preds_size, length) / batch_size
+    crnn.zero_grad()
+    cost.backward()
+    optimizer.step()
+    return cost
+```
+* 上面那坨就是闲的蛋疼...从iterate里获得data后放到cpu_data中，然后把text编码后，放到了t,l这两个中间变量，然后又把它们复制到了text和length，感觉有点冗余这样子，除非我是没有理解loadData是干啥的。
+* 下面这坨就是训练的部分了，根据官网那个简单的例子，整个应该是：
+   1. zero the parameter gradients
+   2. outputs = net(inputs)
+   3. forward + backward + optimize
+   然后这里的顺序是213，不过应该都差不多吧。
+
+#### 2.2.3 for epoch
+
+```python
+for epoch in range(opt.nepoch):
+    train_iter = iter(train_loader)
+    i = 0
+    while i < len(train_loader):
+        for p in crnn.parameters():
+            p.requires_grad = True
+        crnn.train()
+```
+* 这里确定了循环的计数器，最外面的epoch是表示要训练几轮，里面的while是用来计数每次epoch里有多少图片
+* 除此之外就是得到参数，设置为可以计算梯度，以及用train()进入训练模式
+* 主要的训练还是在上面的trainBatch()中
 
 ### 2.3 dataset.py
 
@@ -256,12 +347,53 @@ __getitem__(self, index)这个函数的作用是从lmdb里面取出一个数据�
 * `torch.cat()`是用来拼接张量的，第二个参数决定是按照行还是列来拼接
 * 如果需要按比例的话，那就先找到w/h中最大的为max_ratio，（最扁的），总之就是弄成最扁的就对了..
 
+### 2.4 utils.py
 
+#### 2.4.1 class averager()
 
+注释说是用来计算tensor和Variable的平均。其中add为加，val为计算均值。
 
+`torch.numel()` ：返回一个tensor变量内所有元素个数，可以理解为矩阵内元素的个数
+`torch.sum() `：返回输入向量input中所有元素的和。
 
+#### 2.4.2 encode & decode
 
+首先要解释一下，这里的encode和decode其实和python里原来的encode和decode无关，原来的是把字符串改成二进制型的，在这里并不是。
 
+```python
+    def encode(self, text):
+        """Support batch or single str.
 
+        Args:
+            text (str or list of str): texts to convert.
+
+        Returns:
+            torch.IntTensor [length_0 + length_1 + ... length_{n - 1}]: encoded texts.
+            torch.IntTensor [n]: length of each text.
+        """
+        if isinstance(text, str):
+            text = [
+                self.dict[char.lower() if self._ignore_case else char]
+                for char in text
+            ]
+            length = [len(text)]
+        elif isinstance(text, collections.Iterable):
+            length = [len(s) for s in text]
+            text = ''.join(text)
+            text, _ = self.encode(text)
+        return (torch.IntTensor(text), torch.IntTensor(length))
+```
+* 当输入为字符串时，将字符串中的每个字符都找到与字母表中对应的，然后放入列表，也就是说是把字符串转换成了字符的列表。若输入的是list of str，就会把所有的字符串连在一起，然后再变成列表，其中返回的length为字符的个数而不是字符串的个数。
+
+#### 2.4.3 loadData(v, data)
+
+把data的数据烤到v中。
+
+btw，我好像没看到oneHot这个函数有啥用诶？不管了。
+
+## 3 总结
+
+这是次写readme是把这个代码详详细细地读了一遍。基本在读的时候是没什么问题的。如果需要写的话应该也可以大概按照找个抄抄然后缝缝补补修修改改能写出来吧？
+不过之后是的确还得继续多看相关的代码。
 
 
