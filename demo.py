@@ -7,7 +7,7 @@ from PIL import Image
 import models.crnn as crnn
 
 
-model_path = './data/crnn.pth'
+model_path = './expr/netCRNN_1_99500.pth'
 img_path = './data/demo.png'
 alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
 

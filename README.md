@@ -40,7 +40,6 @@ Additional -Ming
 
 - [1. 训练](#1-训练)
 - [2. 代码解释](#2-代码解释)
-                - [自己只是初学者，只是在自己所理解的范围内稍加解释。](#自己只是初学者只是在自己所理解的范围内稍加解释)
     - [2.1 models/crnn.py](#21-modelscrnnpy)
     - [2.2 train.py](#22-trainpy)
         - [2.2.1 val()](#221-val)
@@ -412,7 +411,69 @@ __getitem__(self, index)这个函数的作用是从lmdb里面取出一个数据�
 
 btw，我好像没看到oneHot这个函数有啥用诶？不管了。
 
-## 3 总结
+## 3 测试
+
+测试数据的话应该主要就是修改demo.py，目前demo可以做到的是对一个输入图片进行输出。那我现在测试就只要把所有的测试图片全部输进去，然后运行，看运行出来的结果和标签一样不一样，然后计算个数最后算准确率。
+
+理论上，现在只要得到一个全是图片途径的列表，再得到一个label的列表，然后分别比较就好了。那么问题在于，如何得到图片的路径及标签呢？
+
+### 3.1 遍历单个文件夹
+
+对于某些文件夹，里面直接包含了图片，然后图片名称为label，可以直接用之前的代码把他们提取出来放在list里.（尴尬我把之前的代码删了..）
+
+```python
+test_path = '/home/liming/data/MJSynth/ramdisk/max/90kDICT32px/1/1/'
+
+test_list = glob.glob(os.path.join(test_path, '*.jpg'))
+label_list = []
+
+for item in test_list:
+    label_list.append(item.split('_')[1].lower())
+```
+
+这个可以把文件夹下所有的jpg格式的图片的路径存到list里，然后用split函数分割就可以得到label。
+
+注意split()的用法，直接str.split(char,int)，第一个参数为分隔符，第二个参数为分为几个参数列表（这里没用到第二个参数）。
+
+### 3.2 遍历文件夹及其子文件夹
+
+比如还是MJ，每个文件夹里面是很好分，但是不知道为什么把所有的图片文件都分开放了。比如文件夹1下面又有10个文件夹，然后每个文件夹下才是照片。这种的话就需要迭代一下了，需要把某一个文件夹下的所有子文件夹里的照片全得到。
+
+其实用上面的方法好像也是可以的，无非多写两层..我先查查有没有其他api吧。
+
+```python
+g = os.walk(r"/home/liming/data/MJSynth/ramdisk/max/90kDICT32px/1")  
+
+for path,dir_list,file_list in g:  
+    for file_name in file_list:  
+        print(os.path.join(path, file_name) )
+
+```
+用这个可以获得某个文件夹下的所有子文件。然后那个walk()里的参数用单引号括起来不行，会报错`SyntaxError: EOL while scanning string literal`，所以就改成这种r""的模式了。
+
+```python
+test_path = r"/home/liming/data/MJSynth/ramdisk/max/90kDICT32px/1"
+g = os.walk(test_path)
+test_list = []
+label_list = []
+
+for path,dir_list,file_list in g:  
+    new_list = glob.glob(os.path.join(path, '*.jpg'))
+    test_list = test_list + new_list
+
+for item in test_list:
+    label_list.append(item.split('_')[1].lower())
+```
+
+上面这样就可以得到某一个文件夹下所有的图片了，应该说第一种是第二种的特例吧。
+
+然后这边要注意的是，新加了一个new_list，因为glob.glob(os.path.join(path, '*.jpg'))直接创造了一个新的list，如果还像原来那样的话，就会出现test_list在每次遍历后都会被替换为新的，就只能得到最后子文件夹下的图片。
+
+### 3.3 lmdb数据库
+
+
+
+## 4 总结
 
 这是次写readme是把这个代码详详细细地读了一遍。基本在读的时候是没什么问题的。如果需要写的话应该也可以大概按照找个抄抄然后缝缝补补修修改改能写出来吧？
 不过之后是的确还得继续多看相关的代码。
