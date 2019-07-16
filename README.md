@@ -53,7 +53,11 @@ Additional -Ming
         - [2.4.1 class averager()](#241-class-averager)
         - [2.4.2 encode & decode](#242-encode--decode)
         - [2.4.3 loadData(v, data)](#243-loaddatav-data)
-- [3 总结](#3-总结)
+- [3 测试](#3-测试)
+    - [3.1 遍历单个文件夹](#31-遍历单个文件夹)
+    - [3.2 遍历文件夹及其子文件夹](#32-遍历文件夹及其子文件夹)
+    - [3.3 lmdb数据库](#33-lmdb数据库)
+- [4 总结](#4-总结)
 
 
 
