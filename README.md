@@ -467,11 +467,13 @@ for item in test_list:
 
 上面这样就可以得到某一个文件夹下所有的图片了，应该说第一种是第二种的特例吧。
 
-然后这边要注意的是，新加了一个new_list，因为glob.glob(os.path.join(path, '*.jpg'))直接创造了一个新的list，如果还像原来那样的话，就会出现test_list在每次遍历后都会被替换为新的，就只能得到最后子文件夹下的图片。
+然后这边要注意的是，新加了一个new_list，因为glob.glob(os.path.join(path, '*.jpg'))直接创造了一个新的list，如果还像原来那样的话，就会出现test_list在每次遍历后都会被替换为新的，就只能得到最后子文件夹下的图片。代码为`test_file.py`。
 
 ### 3.3 lmdb数据库
 
+用lmdb的主要是多了一步要从lmdb中提取出数据。然后由于提取的图片是没有path的，因此不可以像在文件夹里那样子获取label list和图片的path list然后直接用demo的api。
 
+因为数据库中有数据的总数，所以，可以先获取总数，然后用for循环对每一个进行判断。这里要注意一个坑，range是从0开始的，而0是没有label和image数据的，因此range的范围应该是(1,nSamples+1)。具体看代码吧`test_lmdb.py`。
 
 ## 4 总结
 
